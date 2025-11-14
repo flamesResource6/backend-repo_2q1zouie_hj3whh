@@ -12,9 +12,10 @@ Model name is converted to lowercase for the collection name:
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime
 
-# Example schemas (replace with your own):
+# Example schemas (retain for reference)
 
 class User(BaseModel):
     """
@@ -38,11 +39,37 @@ class Product(BaseModel):
     category: str = Field(..., description="Product category")
     in_stock: bool = Field(True, description="Whether product is in stock")
 
-# Add your own schemas here:
-# --------------------------------------------------
+# Fraud detection app schemas
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Transaction(BaseModel):
+    """
+    Transactions collection schema
+    Collection name: "transaction"
+    """
+    transaction_id: Optional[str] = Field(None, description="External transaction ID")
+    user_id: str = Field(..., description="User identifier")
+    amount: float = Field(..., ge=0, description="Transaction amount")
+    currency: str = Field("USD", description="Currency code")
+    merchant: Optional[str] = Field(None, description="Merchant name")
+    merchant_category: Optional[str] = Field(None, description="MCC or category")
+    country: Optional[str] = Field("US", description="Country code")
+    channel: Optional[str] = Field("card", description="Channel, e.g., card, web, mobile")
+    timestamp: Optional[datetime] = Field(None, description="Event time; defaults to now if missing")
+    device_id: Optional[str] = Field(None, description="Device identifier")
+    ip_address: Optional[str] = Field(None, description="IP address")
+    # Labels/derived fields (may be set by backend)
+    risk_score: Optional[float] = Field(None, ge=0, le=100)
+    risk_level: Optional[str] = Field(None, description="low|medium|high")
+    is_fraud: Optional[bool] = Field(False, description="Confirmed fraud label")
+
+class Alert(BaseModel):
+    """
+    Alerts collection schema
+    Collection name: "alert"
+    """
+    transaction_ref: str = Field(..., description="Reference to transaction _id as string")
+    user_id: str = Field(..., description="User identifier")
+    reason: str = Field(..., description="Why this alert was created")
+    risk_score: float = Field(..., ge=0, le=100)
+    risk_level: str = Field(..., description="low|medium|high")
+    tags: Optional[List[str]] = Field(default_factory=list)
